@@ -33,6 +33,16 @@ DEFAULT_VIDEO_TOKEN = "<video>"
 
 local_rank = None
 
+available_corpus = dict(
+    coco = ["/tos-bjml-video/linhan/datasets/llava_image_tune/coco/train2017"],
+    gqa = ["/tos-bjml-video/linhan/datasets/llava_image_tune/gqa/images"],
+    ocr_vqa = ["/tos-bjml-video/linhan/datasets/llava_image_tune/ocr_vqa/images"],
+    vg = ["/tos-bjml-video/linhan/datasets/vg-dataset/images"],
+    textvqa = ["/tos-bjml-video/linhan/datasets/llava_image_tune/textvqa/train_images"],
+    activitynet = ["/tos-bjml-video/linhan/datasets/anet/ANet_320p_fps30/train"],
+    # pope = ["phdd2:s3://coco-caption/val2014"],
+    scienceqa = ["/tos-bjml-video/linhan/datasets/scienceqa/test"]
+)
 
 def rank0_print(*args):
     if local_rank == 0:
@@ -181,6 +191,9 @@ class LazySupervisedDataset(Dataset):
                 if isinstance(ann, list):
                     for sub_ann in ann:
                         sub_ann["data_path"] = data["data_path"]
+                elif data["data_path"] == "multi":
+                    specific_dataset = ann['image'].split("/")[1]
+                    ann["data_path"] = available_corpus[specific_dataset][0]
                 else:
                     ann["data_path"] = data["data_path"]
             list_data_dict += annotations
@@ -371,7 +384,7 @@ class LazySupervisedDataset(Dataset):
 
         if "image" in sources[0]:
             image_folder = sources[0]["data_path"]
-            image_file = sources[0]["image"]
+            image_file = sources[0]["image"].split("/")[-1]
             if isinstance(image_file, List):
                 if len(image_file) > 1:
                     image_file = [
@@ -397,7 +410,7 @@ class LazySupervisedDataset(Dataset):
                 for merged_thw in grid_thw_merged
             ]
         if "video" in sources[0]:
-            video_file = sources[0]["video"]
+            video_file = sources[0]["video"].split("/")[-1]
             video_folder = sources[0]["data_path"]
             if isinstance(video_file, List):
                 if len(video_file) > 1:

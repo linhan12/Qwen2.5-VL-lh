@@ -6,5 +6,9 @@ dist/
 wheels/
 *.egg-info
 
+wandb
 # venv
 .venv
+
+qwen-vl-finetune/output/
+qwen-vl-finetune/wandb/

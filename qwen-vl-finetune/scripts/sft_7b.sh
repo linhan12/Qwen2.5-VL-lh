@@ -4,28 +4,36 @@
 MASTER_ADDR=${MASTER_ADDR:-"127.0.0.1"}
 MASTER_PORT=${MASTER_PORT:-$(shuf -i 20001-29999 -n 1)}
 NNODES=${WORLD_SIZE:-1}
-
+cd /fs-computility/video/shared/linhan/code/Qwen2.5-VL/qwen-vl-finetune
 # DeepSpeed configuration
 deepspeed=./scripts/zero3.json
 
 # Model configuration
-llm=Qwen/Qwen2.5-VL-7B-Instruct  # Using HuggingFace model ID
+# llm=/fs-computility/video/shared/linhan/models/Qwen2-VL-7B  # Using HuggingFace model ID
+llm=/tos-bjml-video/linhan/models/Qwen2-VL-7B/
 
 # Training hyperparameters
 lr=2e-7
-batch_size=4
-grad_accum_steps=4
+batch_size=2
+grad_accum_steps=2
 
 # Training entry point
 entry_file=qwenvl/train/train_qwen.py
 
 # Dataset configuration (replace with public dataset names)
-datasets=public_dataset1,public_dataset2
-
+# datasets=llava_image_tune,videochatgpt
+# datasets=llava_image_tune_random6,videochatgpt_random6
+# datasets=llava_image_tune
 # Output configuration
-run_name="qwen2vl-baseline"
-output_dir=./output
+# run_name="qwen2vl-llava_videochatgpt_nonlp_random0.06"
+# run_name="qwen2vl_llava"
+# run_name="test_nonlp"
+output_dir=./output/${run_name}
+mkdir -p ${output_dir}
+log_dir=${output_dir}_$(date +%Y-%m-%d-%H-%M-%S).log
 
+export WANDB_MODE=offline
+export WANDB_API_KEY="e619ca3afd29c4b7fc11e2d597897401d617f568"
 # Training arguments
 args="
     --deepspeed ${deepspeed} \
@@ -35,9 +43,10 @@ args="
     --tune_mm_vision False \
     --tune_mm_mlp True \
     --tune_mm_llm True \
+    --data_flatten True \
     --bf16 \
     --output_dir ${output_dir} \
-    --num_train_epochs 0.5 \
+    --num_train_epochs 1 \
     --per_device_train_batch_size ${batch_size} \
     --per_device_eval_batch_size $((batch_size*2)) \
     --gradient_accumulation_steps ${grad_accum_steps} \
@@ -46,7 +55,7 @@ args="
     --eval_strategy "no" \
     --save_strategy "steps" \
     --save_steps 1000 \
-    --save_total_limit 1 \
+    --save_total_limit 2 \
     --learning_rate ${lr} \
     --weight_decay 0 \
     --warmup_ratio 0.03 \
@@ -60,7 +69,9 @@ args="
     --report_to wandb"
 
 # Launch training
-torchrun --nproc_per_node=${NPROC_PER_NODE} \
-         --master_addr=${MASTER_ADDR} \
-         --master_port=${MASTER_PORT} \
-         ${entry_file} ${args}
+torchrun --nproc_per_node=$MLP_WORKER_GPU \
+        --nnodes=$MLP_WORKER_NUM \
+        --node_rank=$MLP_ROLE_INDEX \
+        --master_addr=$MLP_WORKER_0_HOST \
+        --master_port=$MLP_WORKER_0_PORT \
+         ${entry_file} ${args} > ${log_dir} 2>&1

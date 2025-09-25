@@ -15,6 +15,9 @@
 #    limitations under the License.
 
 import os
+from mem_mitigation_for_train_qwen import enable_mem_mitigation, MemoryCleanupCallback
+enable_mem_mitigation()
+
 import logging
 import pathlib
 import torch
@@ -125,7 +128,7 @@ def train(attn_implementation="flash_attention_2"):
             model_args.model_name_or_path,
         )
         data_args.model_type = "qwen2vl"
-
+    print(f"data_flatten:{data_args.data_flatten}")
     if data_args.data_flatten:
         replace_qwen2_vl_attention_class()
     model.config.use_cache = False
@@ -154,18 +157,28 @@ def train(attn_implementation="flash_attention_2"):
         model.model.print_trainable_parameters()
     
     if data_args.data_packing:
+        
         data_module = make_supervised_data_module_packed(tokenizer=tokenizer, data_args=data_args)
     else:
+        print(f"not data_packing")
+        # in this block
         data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
+    callbacks=[]
+    callbacks.append(MemoryCleanupCallback(check_every_steps=1, verbose_rank_only=True))
+
     trainer = Trainer(
-        model=model, processing_class=tokenizer, args=training_args, **data_module
+        model=model, processing_class=tokenizer, args=training_args, callbacks=callbacks, **data_module
     )
+   
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         logging.info("checkpoint found, resume training")
         trainer.train(resume_from_checkpoint=True)
     else:
+        # try:
         trainer.train()
+        # except Exception as e:
+        #     print(f"exception in trainer:{e}")
     trainer.save_state()
     data_args.image_processor.save_pretrained(training_args.output_dir)
 
