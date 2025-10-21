@@ -33,7 +33,7 @@ mkdir -p ${output_dir}
 log_dir=${output_dir}_$(date +%Y-%m-%d-%H-%M-%S).log
 
 export WANDB_MODE=offline
-export WANDB_API_KEY="e619ca3afd29c4b7fc11e2d597897401d617f568"
+export WANDB_API_KEY="xxxxxx"
 # Training arguments
 args="
     --deepspeed ${deepspeed} \
