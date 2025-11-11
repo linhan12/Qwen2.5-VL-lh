@@ -33,15 +33,16 @@ DEFAULT_VIDEO_TOKEN = "<video>"
 
 local_rank = int(os.environ.get("LOCAL_RANK", 0))
 
+OSS_DIR = "/mnt/shared-storage-user/linhan/oss/"
 available_corpus = dict(
-    coco = ["/tos-bjml-video/linhan/datasets/llava_image_tune/coco/train2017"],
-    gqa = ["/tos-bjml-video/linhan/datasets/llava_image_tune/gqa/images"],
-    ocr_vqa = ["/tos-bjml-video/linhan/datasets/llava_image_tune/ocr_vqa/images"],
-    vg = ["/tos-bjml-video/linhan/datasets/vg-dataset/images"],
-    textvqa = ["/tos-bjml-video/linhan/datasets/llava_image_tune/textvqa/train_images"],
-    activitynet = ["/tos-bjml-video/linhan/datasets/anet/ANet_320p_fps30/train"],
+    coco = [f"{OSS_DIR}/datasets/llava_image_tune/coco/train2017"],
+    gqa = [f"{OSS_DIR}/datasets/llava_image_tune/gqa/images"],
+    ocr_vqa = [f"{OSS_DIR}/datasets/llava_image_tune/ocr_vqa/images"],
+    vg = [f"{OSS_DIR}/datasets/vg-dataset/images"],
+    textvqa = [f"{OSS_DIR}/datasets/llava_image_tune/textvqa/train_images"],
+    activitynet = [f"{OSS_DIR}/datasets/anet/ANet_320p_fps30/train"],
     # pope = ["phdd2:s3://coco-caption/val2014"],
-    scienceqa = ["/tos-bjml-video/linhan/datasets/scienceqa/test"]
+    scienceqa = [f"{OSS_DIR}/datasets/scienceqa/test"]
 )
 
 def rank0_print(*args):
@@ -349,7 +350,7 @@ class LazySupervisedDataset(Dataset):
             try:
 
                 sample = self._get_item(i)
-                print(f"sample:{sample['input_ids'].shape}")
+                # print(f"sample:{sample['input_ids'].shape}")
                 return sample
             except Exception as e:
                 # sleep 1s in case it is a cloud disk issue
@@ -379,7 +380,7 @@ class LazySupervisedDataset(Dataset):
 
     def _get_item(self, i) -> Dict[str, torch.Tensor]:
         sources = self.list_data_dict[i]
-        print(f"item_{i}:{sources}")
+        # print(f"item_{i}:{sources}")
         if isinstance(i, int):
             sources = [sources]
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
@@ -394,8 +395,8 @@ class LazySupervisedDataset(Dataset):
         if "image" in sources[0]:
             image_folder = self.list_data_dict[i]["data_path"]
             image_file = sources[0]["image"].split("/")[-1]
-            print(f"image_folder:{image_folder}")
-            print(f"image_file:{image_file}")
+            # print(f"image_folder:{image_folder}")
+            # print(f"image_file:{image_file}")
             if isinstance(image_file, List):
                 if len(image_file) > 1:
                     image_file = [
@@ -412,8 +413,8 @@ class LazySupervisedDataset(Dataset):
                 image_file = os.path.join(image_folder, image_file)
                 if not os.path.exists(image_file):
                     print(f"not exist image_file:{image_file}")
-                else:
-                    print(f"image_file_exist:{image_file}")
+                # else:
+                #     # print(f"image_file_exist:{image_file}")
                 image, grid_thw = self.process_image_unified(image_file)
                 image = [image]
             grid_thw_merged = copy.deepcopy(grid_thw)
@@ -687,7 +688,8 @@ class FlattenedDataCollatorForSupervisedDataset(DataCollatorForSupervisedDataset
             if concat_videos is not None and concat_images is not None:
                 print(f"{concat_images.shape} + {concat_videos.shape}")
             elif concat_images is not None:
-                print(f"concat_images:{concat_images.shape}")
+                pass
+                # print(f"concat_images:{concat_images.shape}")
             elif concat_videos is not None:
                 print(f"concat_videos:{concat_videos.shape}")
             
